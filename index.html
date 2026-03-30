@@ -1,63 +1,470 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>VR Shopping Mall</title>
-  
-  <!-- A-Frame Library -->
+  <meta name="description" content="VR Shopping Mall Experience">
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-
-  <script>
-    function buyProduct(name) {
-      alert("You selected: " + name);
+  <style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    #ui-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 10;
     }
-  </script>
+    #hud {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.6); color: #fff; padding: 10px 22px;
+      border-radius: 30px; font-size: 14px; letter-spacing: 0.5px;
+      pointer-events: none; backdrop-filter: blur(6px);
+    }
+    #minimap {
+      position: fixed; top: 18px; right: 18px;
+      background: rgba(0,0,0,0.55); border-radius: 12px;
+      padding: 10px; color: #fff; font-size: 12px;
+      min-width: 140px; backdrop-filter: blur(6px);
+    }
+    #minimap h4 { margin: 0 0 6px; font-size: 13px; color: #ffd700; }
+    #minimap ul { margin: 0; padding: 0 0 0 12px; line-height: 1.8; }
+    #store-sign {
+      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.65); color: #ffd700; padding: 8px 20px;
+      border-radius: 20px; font-size: 15px; font-weight: bold;
+      pointer-events: none; display: none; backdrop-filter: blur(6px);
+    }
+    #controls {
+      position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.5); color: #ccc; padding: 6px 16px;
+      border-radius: 16px; font-size: 12px; pointer-events: none;
+    }
+  </style>
 </head>
-
 <body>
-  <a-scene>
 
-    <!-- Camera (Player) -->
-    <a-entity position="0 1.6 0">
-      <a-camera wasd-controls look-controls></a-camera>
-    </a-entity>
+<div id="ui-overlay">
+  <div id="store-sign"></div>
+  <div id="minimap">
+    <h4>🏬 Mall Directory</h4>
+    <ul>
+      <li>👗 Fashion Store</li>
+      <li>🧸 Toy World</li>
+      <li>📱 Tech Hub</li>
+      <li>🍕 Food Court</li>
+      <li>💄 Beauty Zone</li>
+      <li>📚 Book Corner</li>
+    </ul>
+  </div>
+  <div id="hud">VR Shopping Mall &nbsp;|&nbsp; Look around &amp; use WASD / Arrow Keys to walk</div>
+  <div id="controls">W/A/S/D or Arrow Keys to move &nbsp;·&nbsp; Mouse/Touch to look</div>
+</div>
 
-    <!-- Sky -->
-    <a-sky color="#87CEEB"></a-sky>
+<a-scene
+  fog="type: linear; color: #ffe8d0; near: 30; far: 80"
+  shadow="type: pcfsoft"
+  renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true"
+>
+  <a-assets>
+    <a-mixin id="shelf" geometry="primitive: box; width: 2; height: 1.4; depth: 0.3"
+      material="color: #8B6914; roughness: 0.8" shadow="cast: true; receive: true"></a-mixin>
+    <a-mixin id="pillar" geometry="primitive: cylinder; radius: 0.25; height: 5"
+      material="color: #ddd8cc; roughness: 0.4" shadow="cast: true; receive: true"></a-mixin>
+    <a-mixin id="bench-leg" geometry="primitive: box; width: 0.1; height: 0.4; depth: 0.1"
+      material="color: #555"></a-mixin>
+  </a-assets>
 
+  <!-- Sky / Ceiling Light -->
+  <a-sky color="#fff5e0"></a-sky>
+
+  <!-- Ambient + Sun light -->
+  <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+  <a-light type="directional" position="10 20 10" color="#fff8e7" intensity="1.2"
+    castShadow="true" shadow-camera-far="60" shadow-camera-left="-30"
+    shadow-camera-right="30" shadow-camera-top="30" shadow-camera-bottom="-30"></a-light>
+
+  <!-- Warm point lights for ambiance -->
+  <a-light type="point" position="0 4 0" color="#ffd070" intensity="0.8" distance="25"></a-light>
+  <a-light type="point" position="-14 4 0" color="#ff9966" intensity="0.5" distance="15"></a-light>
+  <a-light type="point" position="14 4 0" color="#66aaff" intensity="0.5" distance="15"></a-light>
+  <a-light type="point" position="0 4 -20" color="#aaffcc" intensity="0.5" distance="15"></a-light>
+  <a-light type="point" position="0 4 20" color="#ff99cc" intensity="0.5" distance="15"></a-light>
+
+  <!-- ====================== MAIN FLOOR ====================== -->
+  <a-plane position="0 0 0" rotation="-90 0 0" width="60" height="60"
+    material="color: #f0e8d8; roughness: 0.6; metalness: 0.05"
+    shadow="receive: true"></a-plane>
+
+  <!-- Marble tile pattern overlay -->
+  <a-plane position="0 0.01 0" rotation="-90 0 0" width="60" height="60"
+    material="color: #ece4d5; wireframe: true; wireframeLinewidth: 1; opacity: 0.2; transparent: true"></a-plane>
+
+  <!-- ====================== CEILING ====================== -->
+  <a-plane position="0 5.5 0" rotation="90 0 0" width="60" height="60"
+    material="color: #f8f4ec; roughness: 0.9" shadow="receive: true"></a-plane>
+
+  <!-- Ceiling skylight panels -->
+  <a-plane position="0 5.48 0" rotation="90 0 0" width="12" height="8"
+    material="color: #fffbe0; emissive: #ffe080; emissiveIntensity: 0.4; opacity: 0.9; transparent: true"></a-plane>
+  <a-plane position="-14 5.48 0" rotation="90 0 0" width="8" height="8"
+    material="color: #ffe0e0; emissive: #ff8866; emissiveIntensity: 0.3; opacity: 0.8; transparent: true"></a-plane>
+  <a-plane position="14 5.48 0" rotation="90 0 0" width="8" height="8"
+    material="color: #e0e8ff; emissive: #6699ff; emissiveIntensity: 0.3; opacity: 0.8; transparent: true"></a-plane>
+
+  <!-- ====================== MAIN CORRIDOR WALLS ====================== -->
+  <!-- Back wall -->
+  <a-box position="0 2.75 -28" width="60" height="5.5" depth="0.4"
+    material="color: #f5ede0; roughness: 0.7" shadow="cast: true; receive: true"></a-box>
+  <!-- Front wall -->
+  <a-box position="0 2.75 28" width="60" height="5.5" depth="0.4"
+    material="color: #f5ede0; roughness: 0.7"></a-box>
+  <!-- Left wall -->
+  <a-box position="-29 2.75 0" width="0.4" height="5.5" depth="56"
+    material="color: #f5ede0; roughness: 0.7"></a-box>
+  <!-- Right wall -->
+  <a-box position="29 2.75 0" width="0.4" height="5.5" depth="56"
+    material="color: #f5ede0; roughness: 0.7"></a-box>
+
+  <!-- ====================== PILLARS ====================== -->
+  <a-cylinder mixin="pillar" position="-6 2.5 -12"></a-cylinder>
+  <a-cylinder mixin="pillar" position="6 2.5 -12"></a-cylinder>
+  <a-cylinder mixin="pillar" position="-6 2.5 0"></a-cylinder>
+  <a-cylinder mixin="pillar" position="6 2.5 0"></a-cylinder>
+  <a-cylinder mixin="pillar" position="-6 2.5 12"></a-cylinder>
+  <a-cylinder mixin="pillar" position="6 2.5 12"></a-cylinder>
+
+  <!-- Pillar caps (gold rings) -->
+  <a-cylinder position="-6 5 -12" radius="0.3" height="0.15" material="color: #c8a830; metalness: 0.8; roughness: 0.2"></a-cylinder>
+  <a-cylinder position="6 5 -12" radius="0.3" height="0.15" material="color: #c8a830; metalness: 0.8; roughness: 0.2"></a-cylinder>
+  <a-cylinder position="-6 5 0" radius="0.3" height="0.15" material="color: #c8a830; metalness: 0.8; roughness: 0.2"></a-cylinder>
+  <a-cylinder position="6 5 0" radius="0.3" height="0.15" material="color: #c8a830; metalness: 0.8; roughness: 0.2"></a-cylinder>
+  <a-cylinder position="-6 5 12" radius="0.3" height="0.15" material="color: #c8a830; metalness: 0.8; roughness: 0.2"></a-cylinder>
+  <a-cylinder position="6 5 12" radius="0.3" height="0.15" material="color: #c8a830; metalness: 0.8; roughness: 0.2"></a-cylinder>
+
+  <!-- Fountain in center -->
+  <a-cylinder position="0 0.15 0" radius="2.5" height="0.3" material="color: #c8b888; roughness: 0.3; metalness: 0.2"></a-cylinder>
+  <a-cylinder position="0 0.5 0" radius="2.3" height="0.1" material="color: #6ab8d8; opacity: 0.75; transparent: true; roughness: 0.1"></a-cylinder>
+  <a-cylinder position="0 0.5 0" radius="0.15" height="1.2" material="color: #c8b888; metalness: 0.4"></a-cylinder>
+  <!-- Fountain water stream suggestion -->
+  <a-sphere position="0 1.7 0" radius="0.12" material="color: #88ccee; opacity: 0.7; transparent: true"></a-sphere>
+
+  <!-- Benches near fountain -->
+  <a-box position="3.5 0.45 0" width="1.8" height="0.1" depth="0.5" material="color: #8B6914; roughness: 0.8"></a-box>
+  <a-box position="-3.5 0.45 0" width="1.8" height="0.1" depth="0.5" material="color: #8B6914; roughness: 0.8"></a-box>
+  <a-box position="0 0.45 3.5" width="0.5" height="0.1" depth="1.8" material="color: #8B6914; roughness: 0.8"></a-box>
+  <a-box position="0 0.45 -3.5" width="0.5" height="0.1" depth="1.8" material="color: #8B6914; roughness: 0.8"></a-box>
+
+  <!-- Decorative plants -->
+  <a-cylinder position="4.5 0.4 4.5" radius="0.25" height="0.8" material="color: #cc8833"></a-cylinder>
+  <a-sphere position="4.5 1.1 4.5" radius="0.5" material="color: #228833"></a-sphere>
+  <a-sphere position="4.3 0.9 4.7" radius="0.3" material="color: #2a9a3a"></a-sphere>
+
+  <a-cylinder position="-4.5 0.4 4.5" radius="0.25" height="0.8" material="color: #cc8833"></a-cylinder>
+  <a-sphere position="-4.5 1.1 4.5" radius="0.5" material="color: #228833"></a-sphere>
+
+  <a-cylinder position="4.5 0.4 -4.5" radius="0.25" height="0.8" material="color: #cc8833"></a-cylinder>
+  <a-sphere position="4.5 1.1 -4.5" radius="0.5" material="color: #228833"></a-sphere>
+
+  <a-cylinder position="-4.5 0.4 -4.5" radius="0.25" height="0.8" material="color: #cc8833"></a-cylinder>
+  <a-sphere position="-4.5 1.1 -4.5" radius="0.5" material="color: #228833"></a-sphere>
+
+  <!-- ====================== STORE 1: FASHION STORE (Left, Far) ====================== -->
+  <a-entity id="fashion-store">
+    <!-- Back wall -->
+    <a-box position="-18 2.75 -22" width="14" height="5.5" depth="0.3"
+      material="color: #ffe0ec; roughness: 0.8" shadow="cast: true"></a-box>
+    <!-- Side walls -->
+    <a-box position="-24.8 2.75 -19" width="0.3" height="5.5" depth="6"
+      material="color: #ffe0ec"></a-box>
+    <a-box position="-11.2 2.75 -19" width="0.3" height="5.5" depth="6"
+      material="color: #ffe0ec"></a-box>
     <!-- Floor -->
-    <a-plane position="0 0 -10" rotation="-90 0 0"
-             width="30" height="30" color="#7BC8A4"></a-plane>
+    <a-plane position="-18 0.02 -19" rotation="-90 0 0" width="13.6" height="6"
+      material="color: #fff0f6; roughness: 0.5"></a-plane>
+    <!-- Store sign -->
+    <a-box position="-18 5.1 -21.7" width="8" height="0.8" depth="0.15"
+      material="color: #d63a7a; emissive: #d63a7a; emissiveIntensity: 0.4"></a-box>
+    <a-text value="👗 FASHION BOUTIQUE" position="-18 5.1 -21.5" align="center"
+      color="#ffffff" width="7" font="kelsonsans"></a-text>
+    <!-- Clothes racks -->
+    <a-box position="-20 1.4 -21" width="0.08" height="2.8" depth="0.08" material="color: #888"></a-box>
+    <a-cylinder position="-20 2.85 -21" radius="0.04" height="2.5" rotation="0 0 90" material="color: #aaa"></a-cylinder>
+    <!-- Hanging clothes (colored boxes as clothes) -->
+    <a-box position="-21 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #e83a7a"></a-box>
+    <a-box position="-20.5 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #6633aa"></a-box>
+    <a-box position="-20 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #3366cc"></a-box>
+    <a-box position="-19.5 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #ff8833"></a-box>
+    <a-box position="-19 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #33aa55"></a-box>
+    <!-- Second rack -->
+    <a-box position="-16 1.4 -21" width="0.08" height="2.8" depth="0.08" material="color: #888"></a-box>
+    <a-cylinder position="-16 2.85 -21" radius="0.04" height="2.5" rotation="0 0 90" material="color: #aaa"></a-cylinder>
+    <a-box position="-17 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #ffcc00"></a-box>
+    <a-box position="-16.5 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #cc3333"></a-box>
+    <a-box position="-16 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #33cccc"></a-box>
+    <a-box position="-15.5 2.4 -21" width="0.3" height="0.6" depth="0.08" material="color: #ff66aa"></a-box>
+    <!-- Mirror -->
+    <a-box position="-23.5 2 -21.5" width="1" height="2" depth="0.1"
+      material="color: #ccddff; metalness: 0.9; roughness: 0.1; opacity: 0.8; transparent: true"></a-box>
+    <!-- Mannequin -->
+    <a-cylinder position="-13.5 0.8 -20.5" radius="0.15" height="1.6" material="color: #f5d5c0"></a-cylinder>
+    <a-sphere position="-13.5 1.9 -20.5" radius="0.22" material="color: #f5d5c0"></a-sphere>
+    <a-box position="-13.5 1.5 -20.5" width="0.5" height="0.5" depth="0.2" material="color: #e83a7a"></a-box>
+    <!-- Store trigger zone -->
+    <a-box position="-18 1.5 -18.5" width="13" height="3" depth="0.5"
+      material="opacity: 0; transparent: true"
+      data-store="👗 Fashion Boutique" class="store-trigger"></a-box>
+  </a-entity>
 
-    <!-- Walls -->
-    <a-box position="0 5 -15" width="30" height="10" depth="1" color="#ccc"></a-box>
-    <a-box position="-15 5 0" width="1" height="10" depth="30" color="#ccc"></a-box>
-    <a-box position="15 5 0" width="1" height="10" depth="30" color="#ccc"></a-box>
+  <!-- ====================== STORE 2: TOY WORLD (Right, Far) ====================== -->
+  <a-entity id="toy-store">
+    <a-box position="18 2.75 -22" width="14" height="5.5" depth="0.3"
+      material="color: #ffe8a0; roughness: 0.8"></a-box>
+    <a-box position="24.8 2.75 -19" width="0.3" height="5.5" depth="6" material="color: #ffe8a0"></a-box>
+    <a-box position="11.2 2.75 -19" width="0.3" height="5.5" depth="6" material="color: #ffe8a0"></a-box>
+    <a-plane position="18 0.02 -19" rotation="-90 0 0" width="13.6" height="6"
+      material="color: #fffae0; roughness: 0.5"></a-plane>
+    <!-- Sign -->
+    <a-box position="18 5.1 -21.7" width="8" height="0.8" depth="0.15"
+      material="color: #e87a00; emissive: #e87a00; emissiveIntensity: 0.4"></a-box>
+    <a-text value="🧸 TOY WORLD" position="18 5.1 -21.5" align="center"
+      color="#ffffff" width="7"></a-text>
+    <!-- Toy shelves -->
+    <a-box position="16 0.6 -21.5" width="4" height="0.15" depth="0.8" material="color: #8B6914"></a-box>
+    <a-box position="16 1.4 -21.5" width="4" height="0.15" depth="0.8" material="color: #8B6914"></a-box>
+    <a-box position="16 2.2 -21.5" width="4" height="0.15" depth="0.8" material="color: #8B6914"></a-box>
+    <a-box position="13.8 1.4 -21.5" width="0.12" height="2.8" depth="0.8" material="color: #8B6914"></a-box>
+    <a-box position="18.2 1.4 -21.5" width="0.12" height="2.8" depth="0.8" material="color: #8B6914"></a-box>
+    <!-- Toys on shelves (colorful spheres and boxes) -->
+    <a-sphere position="15 0.85 -21.5" radius="0.25" material="color: #ff4444"></a-sphere>
+    <a-sphere position="15.6 0.85 -21.5" radius="0.22" material="color: #4488ff"></a-sphere>
+    <a-box position="16.4 0.85 -21.5" width="0.35" height="0.35" depth="0.35" material="color: #44cc44"></a-box>
+    <a-box position="17 0.85 -21.5" width="0.3" height="0.42" depth="0.3" material="color: #ffaa00"></a-box>
+    <a-sphere position="15 1.65 -21.5" radius="0.18" material="color: #ff66cc"></a-sphere>
+    <a-box position="15.7 1.65 -21.5" width="0.32" height="0.32" depth="0.32" material="color: #aa44ff"></a-box>
+    <a-sphere position="16.5 1.65 -21.5" radius="0.2" material="color: #ffcc00"></a-sphere>
+    <a-box position="17.2 1.65 -21.5" width="0.3" height="0.3" depth="0.3" material="color: #00ccaa"></a-box>
+    <!-- Big toy car -->
+    <a-box position="21 0.35 -20.5" width="1.2" height="0.5" depth="0.6" material="color: #ff2222"></a-box>
+    <a-cylinder position="20.4 0.2 -20.2" radius="0.2" height="0.12" rotation="0 0 90" material="color: #222"></a-cylinder>
+    <a-cylinder position="21.6 0.2 -20.2" radius="0.2" height="0.12" rotation="0 0 90" material="color: #222"></a-cylinder>
+    <!-- Store trigger -->
+    <a-box position="18 1.5 -18.5" width="13" height="3" depth="0.5"
+      material="opacity: 0; transparent: true"
+      data-store="🧸 Toy World" class="store-trigger"></a-box>
+  </a-entity>
 
-    <!-- Shop 1 -->
-    <a-text value="Clothing Store" position="-5 3 -8" color="black"></a-text>
+  <!-- ====================== STORE 3: TECH HUB (Right, Middle) ====================== -->
+  <a-entity id="tech-store">
+    <a-box position="18 2.75 0" width="14" height="5.5" depth="0.3"
+      material="color: #d0e8ff; roughness: 0.6"></a-box>
+    <a-box position="24.8 2.75 3" width="0.3" height="5.5" depth="6" material="color: #d0e8ff"></a-box>
+    <a-box position="11.2 2.75 3" width="0.3" height="5.5" depth="6" material="color: #d0e8ff"></a-box>
+    <a-plane position="18 0.02 3" rotation="-90 0 0" width="13.6" height="6"
+      material="color: #e0f0ff; roughness: 0.3; metalness: 0.1"></a-plane>
+    <a-box position="18 5.1 -0.2" width="8" height="0.8" depth="0.15"
+      material="color: #0055cc; emissive: #0055cc; emissiveIntensity: 0.5"></a-box>
+    <a-text value="📱 TECH HUB" position="18 5.1 0" align="center" color="#ffffff" width="7"></a-text>
+    <!-- Display tables with devices -->
+    <a-box position="16 0.8 1" width="2.5" height="0.1" depth="1.2" material="color: #cccccc; metalness: 0.8; roughness: 0.2"></a-box>
+    <a-box position="20 0.8 1" width="2.5" height="0.1" depth="1.2" material="color: #cccccc; metalness: 0.8; roughness: 0.2"></a-box>
+    <a-box position="16 0.7 1" width="2.4" height="1.4" depth="0.08" material="color: #111; roughness: 0.2"></a-box>
+    <!-- Laptop screens -->
+    <a-box position="16 0.92 0.7" width="1.6" height="0.05" depth="1" material="color: #222"></a-box>
+    <a-plane position="16 0.95 0.7" rotation="-90 0 0" width="1.5" height="0.9"
+      material="color: #224488; emissive: #224488; emissiveIntensity: 0.5"></a-plane>
+    <a-box position="20 0.92 0.7" width="1.6" height="0.05" depth="1" material="color: #222"></a-box>
+    <a-plane position="20 0.95 0.7" rotation="-90 0 0" width="1.5" height="0.9"
+      material="color: #224488; emissive: #224488; emissiveIntensity: 0.5"></a-plane>
+    <!-- Wall display -->
+    <a-box position="18 2.5 -0.15" width="6" height="3" depth="0.12" material="color: #111; roughness: 0.2"></a-box>
+    <a-plane position="18 2.5 0" rotation="0 0 0" width="5.6" height="2.6"
+      material="color: #1a3a6a; emissive: #1a3a6a; emissiveIntensity: 0.6; opacity: 0.9; transparent: true"></a-plane>
+    <a-text value="TECH SALE 50% OFF" position="18 2.5 0.1" align="center"
+      color="#88ccff" width="5" font="kelsonsans"></a-text>
+    <!-- Store trigger -->
+    <a-box position="18 1.5 3.5" width="13" height="3" depth="0.5"
+      material="opacity: 0; transparent: true"
+      data-store="📱 Tech Hub" class="store-trigger"></a-box>
+  </a-entity>
 
-    <a-box position="-5 1 -8" color="red"
-           onclick="buyProduct('T-Shirt')">
-    </a-box>
+  <!-- ====================== STORE 4: FOOD COURT (Center, Far) ====================== -->
+  <a-entity id="food-court">
+    <a-box position="0 2.75 -22" width="10" height="5.5" depth="0.3"
+      material="color: #e0ffe0; roughness: 0.8"></a-box>
+    <a-plane position="0 0.02 -19" rotation="-90 0 0" width="9" height="6"
+      material="color: #f0fff0; roughness: 0.5"></a-plane>
+    <a-box position="0 5.1 -21.7" width="8" height="0.8" depth="0.15"
+      material="color: #cc3300; emissive: #cc3300; emissiveIntensity: 0.4"></a-box>
+    <a-text value="🍕 FOOD COURT" position="0 5.1 -21.5" align="center" color="#ffffff" width="7"></a-text>
+    <!-- Counter -->
+    <a-box position="0 0.9 -20.5" width="7" height="1" depth="1" material="color: #cc6600; roughness: 0.6"></a-box>
+    <a-box position="0 1.4 -20.5" width="7" height="0.08" depth="1.1" material="color: #eeddcc; roughness: 0.3"></a-box>
+    <!-- Food items on counter -->
+    <a-cylinder position="-1 1.6 -20.5" radius="0.3" height="0.12" material="color: #cc9933"></a-cylinder>
+    <a-sphere position="-1 1.72 -20.5" radius="0.22" material="color: #cc6600"></a-sphere>
+    <a-cylinder position="0.5 1.6 -20.5" radius="0.25" height="0.08" material="color: #eecb8a"></a-cylinder>
+    <a-box position="1.5 1.55 -20.5" width="0.4" height="0.3" depth="0.4" material="color: #cc3300"></a-box>
+    <!-- Chairs and tables -->
+    <a-cylinder position="-2 0.44 -17.5" radius="0.5" height="0.08" material="color: #eeddcc; roughness: 0.3"></a-cylinder>
+    <a-cylinder position="-2 0.2 -17.5" radius="0.06" height="0.4" material="color: #888"></a-cylinder>
+    <a-cylinder position="2 0.44 -17.5" radius="0.5" height="0.08" material="color: #eeddcc; roughness: 0.3"></a-cylinder>
+    <a-cylinder position="2 0.2 -17.5" radius="0.06" height="0.4" material="color: #888"></a-cylinder>
+    <!-- Store trigger -->
+    <a-box position="0 1.5 -18.5" width="9" height="3" depth="0.5"
+      material="opacity: 0; transparent: true"
+      data-store="🍕 Food Court" class="store-trigger"></a-box>
+  </a-entity>
 
-    <!-- Shop 2 -->
-    <a-text value="Gadget Store" position="5 3 -8" color="black"></a-text>
+  <!-- ====================== STORE 5: BEAUTY ZONE (Left, Middle) ====================== -->
+  <a-entity id="beauty-store">
+    <a-box position="-18 2.75 0" width="14" height="5.5" depth="0.3"
+      material="color: #ffd6f0; roughness: 0.7"></a-box>
+    <a-box position="-24.8 2.75 3" width="0.3" height="5.5" depth="6" material="color: #ffd6f0"></a-box>
+    <a-box position="-11.2 2.75 3" width="0.3" height="5.5" depth="6" material="color: #ffd6f0"></a-box>
+    <a-plane position="-18 0.02 3" rotation="-90 0 0" width="13.6" height="6"
+      material="color: #fff0fa; roughness: 0.5"></a-plane>
+    <a-box position="-18 5.1 -0.2" width="8" height="0.8" depth="0.15"
+      material="color: #cc2288; emissive: #cc2288; emissiveIntensity: 0.4"></a-box>
+    <a-text value="💄 BEAUTY ZONE" position="-18 5.1 0" align="center" color="#ffffff" width="7"></a-text>
+    <!-- Display shelves -->
+    <a-box position="-16 1.2 -0.1" width="4" height="0.1" depth="0.8" material="color: #eee; roughness: 0.3"></a-box>
+    <a-box position="-16 1.8 -0.1" width="4" height="0.1" depth="0.8" material="color: #eee"></a-box>
+    <a-box position="-13.8 1.5 -0.1" width="0.08" height="1.2" depth="0.8" material="color: #eee"></a-box>
+    <a-box position="-18.2 1.5 -0.1" width="0.08" height="1.2" depth="0.8" material="color: #eee"></a-box>
+    <!-- Beauty products (cylinders = bottles) -->
+    <a-cylinder position="-17 1.4 -0.1" radius="0.1" height="0.35" material="color: #ff66aa"></a-cylinder>
+    <a-cylinder position="-16.5 1.4 -0.1" radius="0.08" height="0.4" material="color: #aa44cc"></a-cylinder>
+    <a-cylinder position="-16 1.4 -0.1" radius="0.09" height="0.32" material="color: #ff9933"></a-cylinder>
+    <a-cylinder position="-15.5 1.4 -0.1" radius="0.1" height="0.38" material="color: #cc2266"></a-cylinder>
+    <a-cylinder position="-17 2.0 -0.1" radius="0.08" height="0.3" material="color: #88aaff"></a-cylinder>
+    <a-cylinder position="-16.5 2.0 -0.1" radius="0.1" height="0.4" material="color: #66ccaa"></a-cylinder>
+    <a-cylinder position="-16 2.0 -0.1" radius="0.07" height="0.35" material="color: #ffcc33"></a-cylinder>
+    <!-- Makeup counter -->
+    <a-box position="-20 0.9 2.5" width="4" height="0.9" depth="1" material="color: #f0c8e8; roughness: 0.5"></a-box>
+    <a-box position="-20 1.35 2.5" width="4" height="0.06" depth="1.1" material="color: #fff; roughness: 0.2"></a-box>
+    <!-- Store trigger -->
+    <a-box position="-18 1.5 3.5" width="13" height="3" depth="0.5"
+      material="opacity: 0; transparent: true"
+      data-store="💄 Beauty Zone" class="store-trigger"></a-box>
+  </a-entity>
 
-    <a-box position="5 1 -8" color="blue"
-           onclick="buyProduct('Smartphone')">
-    </a-box>
+  <!-- ====================== STORE 6: BOOK CORNER (Center, Near) ====================== -->
+  <a-entity id="book-store">
+    <a-box position="0 2.75 22" width="10" height="5.5" depth="0.3"
+      material="color: #d8c8a8; roughness: 0.9"></a-box>
+    <a-plane position="0 0.02 19" rotation="-90 0 0" width="9" height="6"
+      material="color: #ebe0c8; roughness: 0.8"></a-plane>
+    <a-box position="0 5.1 21.7" width="8" height="0.8" depth="0.15"
+      material="color: #7a5522; emissive: #7a5522; emissiveIntensity: 0.3"></a-box>
+    <a-text value="📚 BOOK CORNER" position="0 5.1 21.5" align="center" color="#ffffff" width="7"></a-text>
+    <!-- Bookcases -->
+    <a-box position="-2 2 21.5" width="0.3" height="4" depth="1.5" material="color: #6b4420; roughness: 0.9"></a-box>
+    <a-box position="2 2 21.5" width="0.3" height="4" depth="1.5" material="color: #6b4420; roughness: 0.9"></a-box>
+    <a-box position="0 0.8 21.5" width="4.3" height="0.12" depth="1.5" material="color: #6b4420; roughness: 0.9"></a-box>
+    <a-box position="0 1.7 21.5" width="4.3" height="0.12" depth="1.5" material="color: #6b4420; roughness: 0.9"></a-box>
+    <a-box position="0 2.6 21.5" width="4.3" height="0.12" depth="1.5" material="color: #6b4420; roughness: 0.9"></a-box>
+    <a-box position="0 3.5 21.5" width="4.3" height="0.12" depth="1.5" material="color: #6b4420; roughness: 0.9"></a-box>
+    <!-- Books on shelves (colored boxes) -->
+    <a-box position="-1.4 1.0 21.5" width="0.15" height="0.5" depth="0.3" material="color: #cc2222"></a-box>
+    <a-box position="-1.2 1.0 21.5" width="0.15" height="0.6" depth="0.3" material="color: #2266cc"></a-box>
+    <a-box position="-1.0 1.0 21.5" width="0.15" height="0.5" depth="0.3" material="color: #22aa44"></a-box>
+    <a-box position="-0.8 1.0 21.5" width="0.12" height="0.55" depth="0.3" material="color: #aaaa22"></a-box>
+    <a-box position="-0.6 1.0 21.5" width="0.15" height="0.5" depth="0.3" material="color: #aa4422"></a-box>
+    <a-box position="-1.4 1.9 21.5" width="0.15" height="0.5" depth="0.3" material="color: #aa22aa"></a-box>
+    <a-box position="-1.2 1.9 21.5" width="0.15" height="0.45" depth="0.3" material="color: #2299aa"></a-box>
+    <a-box position="-1.0 1.9 21.5" width="0.15" height="0.55" depth="0.3" material="color: #cc6600"></a-box>
+    <a-box position="0.6 1.0 21.5" width="0.15" height="0.5" depth="0.3" material="color: #660066"></a-box>
+    <a-box position="0.8 1.0 21.5" width="0.15" height="0.6" depth="0.3" material="color: #006666"></a-box>
+    <a-box position="1.0 1.0 21.5" width="0.15" height="0.5" depth="0.3" material="color: #cc8800"></a-box>
+    <a-box position="1.2 1.0 21.5" width="0.15" height="0.55" depth="0.3" material="color: #8800cc"></a-box>
+    <!-- Reading chair -->
+    <a-box position="3.5 0.4 19" width="1" height="0.08" depth="1" material="color: #774422; roughness: 0.9"></a-box>
+    <a-box position="3.5 0.9 18.5" width="1" height="0.9" depth="0.12" material="color: #774422; roughness: 0.9"></a-box>
+    <!-- Store trigger -->
+    <a-box position="0 1.5 18.5" width="9" height="3" depth="0.5"
+      material="opacity: 0; transparent: true"
+      data-store="📚 Book Corner" class="store-trigger"></a-box>
+  </a-entity>
 
-    <!-- Center Product -->
-    <a-text value="Try Product" position="0 3 -5" color="black"></a-text>
+  <!-- ====================== DECORATIVE BANNERS ====================== -->
+  <!-- Hanging banners from ceiling -->
+  <a-plane position="-10 4 -12" rotation="0 0 0" width="2" height="1.5"
+    material="color: #ff4488; emissive: #ff4488; emissiveIntensity: 0.2; opacity: 0.9; transparent: true"></a-plane>
+  <a-text value="SALE!" position="-10 4 -11.9" align="center" color="#fff" width="3"></a-text>
 
-    <a-sphere position="0 1 -5" radius="1" color="green"
-              onclick="buyProduct('Special Item')">
-    </a-sphere>
+  <a-plane position="10 4 -12" rotation="0 0 0" width="2" height="1.5"
+    material="color: #4488ff; emissive: #4488ff; emissiveIntensity: 0.2; opacity: 0.9; transparent: true"></a-plane>
+  <a-text value="NEW!" position="10 4 -11.9" align="center" color="#fff" width="3"></a-text>
 
-    <!-- Lighting -->
-    <a-light type="ambient" color="#ffffff"></a-light>
-    <a-light type="directional" position="1 1 1"></a-light>
+  <a-plane position="-10 4 12" rotation="0 0 0" width="2" height="1.5"
+    material="color: #44cc88; emissive: #44cc88; emissiveIntensity: 0.2; opacity: 0.9; transparent: true"></a-plane>
+  <a-text value="OFFERS" position="-10 4 12.1" align="center" color="#fff" width="3"></a-text>
 
-  </a-scene>
+  <a-plane position="10 4 12" rotation="0 0 0" width="2" height="1.5"
+    material="color: #ffaa00; emissive: #ffaa00; emissiveIntensity: 0.2; opacity: 0.9; transparent: true"></a-plane>
+  <a-text value="DEALS!" position="10 4 12.1" align="center" color="#fff" width="3"></a-text>
+
+  <!-- String lights along corridor ceiling -->
+  <a-sphere position="-8 5.2 -6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="-4 5.2 -6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="0 5.2 -6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="4 5.2 -6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="8 5.2 -6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="-8 5.2 6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="-4 5.2 6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="0 5.2 6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="4 5.2 6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+  <a-sphere position="8 5.2 6" radius="0.1" material="color: #ffee88; emissive: #ffee88; emissiveIntensity: 1"></a-sphere>
+
+  <!-- ====================== CAMERA / PLAYER ====================== -->
+  <a-entity id="player" position="0 1.6 8" wasd-controls="acceleration: 20" look-controls>
+    <a-camera>
+      <!-- Crosshair cursor -->
+      <a-cursor color="#ffffff" opacity="0.8" raycaster="objects: .store-trigger"
+        animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+        animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1">
+      </a-cursor>
+    </a-camera>
+  </a-entity>
+
+</a-scene>
+
+<script>
+  var storeSign = document.getElementById('store-sign');
+  var currentStore = '';
+  var signTimeout = null;
+
+  document.querySelectorAll('.store-trigger').forEach(function(el) {
+    el.addEventListener('mouseenter', function() {
+      var name = this.getAttribute('data-store');
+      storeSign.textContent = name;
+      storeSign.style.display = 'block';
+      currentStore = name;
+      clearTimeout(signTimeout);
+    });
+    el.addEventListener('mouseleave', function() {
+      signTimeout = setTimeout(function() {
+        storeSign.style.display = 'none';
+        currentStore = '';
+      }, 800);
+    });
+    el.addEventListener('click', function() {
+      var name = this.getAttribute('data-store');
+      storeSign.textContent = 'Entering: ' + name;
+      storeSign.style.display = 'block';
+      signTimeout = setTimeout(function() {
+        storeSign.style.display = 'none';
+      }, 2000);
+    });
+  });
+
+  // Animate fountain sphere
+  var fountainSphere = document.querySelector('a-sphere[position="0 1.7 0"]');
+  if (fountainSphere) {
+    fountainSphere.setAttribute('animation', 'property: position; from: 0 1.5 0; to: 0 1.85 0; dir: alternate; dur: 800; loop: true; easing: easeInOutSine');
+  }
+
+  // Animate banners gentle sway
+  document.querySelectorAll('a-plane[rotation="0 0 0"]').forEach(function(b, i) {
+    b.setAttribute('animation', 'property: rotation; from: -1 0 0; to: 1 0 0; dir: alternate; dur: ' + (2000 + i * 300) + '; loop: true; easing: easeInOutSine');
+  });
+</script>
 </body>
 </html>
