@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VR Shopping Mall</title>
+  
+  <!-- A-Frame Library -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+
+  <script>
+    function buyProduct(name) {
+      alert("You selected: " + name);
+    }
+  </script>
+</head>
+
+<body>
+  <a-scene>
+
+    <!-- Camera (Player) -->
+    <a-entity position="0 1.6 0">
+      <a-camera wasd-controls look-controls></a-camera>
+    </a-entity>
+
+    <!-- Sky -->
+    <a-sky color="#87CEEB"></a-sky>
+
+    <!-- Floor -->
+    <a-plane position="0 0 -10" rotation="-90 0 0"
+             width="30" height="30" color="#7BC8A4"></a-plane>
+
+    <!-- Walls -->
+    <a-box position="0 5 -15" width="30" height="10" depth="1" color="#ccc"></a-box>
+    <a-box position="-15 5 0" width="1" height="10" depth="30" color="#ccc"></a-box>
+    <a-box position="15 5 0" width="1" height="10" depth="30" color="#ccc"></a-box>
+
+    <!-- Shop 1 -->
+    <a-text value="Clothing Store" position="-5 3 -8" color="black"></a-text>
+
+    <a-box position="-5 1 -8" color="red"
+           onclick="buyProduct('T-Shirt')">
+    </a-box>
+
+    <!-- Shop 2 -->
+    <a-text value="Gadget Store" position="5 3 -8" color="black"></a-text>
+
+    <a-box position="5 1 -8" color="blue"
+           onclick="buyProduct('Smartphone')">
+    </a-box>
+
+    <!-- Center Product -->
+    <a-text value="Try Product" position="0 3 -5" color="black"></a-text>
+
+    <a-sphere position="0 1 -5" radius="1" color="green"
+              onclick="buyProduct('Special Item')">
+    </a-sphere>
+
+    <!-- Lighting -->
+    <a-light type="ambient" color="#ffffff"></a-light>
+    <a-light type="directional" position="1 1 1"></a-light>
+
+  </a-scene>
+</body>
+</html>
